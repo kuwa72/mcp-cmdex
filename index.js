@@ -89,6 +89,8 @@ class MCPServer {
     
     // Handle specific methods
     switch (method) {
+      case 'initialize':
+        return this.handleInitialize(id, params);
       case 'tools/list':
         return this.handleToolsList(id);
       case 'tool/exec':
@@ -125,6 +127,17 @@ class MCPServer {
     } else {
       this.sendError(id, -32601, `Tool not found: ${name}`);
     }
+  }
+  
+  handleInitialize(id, params) {
+    // プロトコルバージョンの確認
+    const protocolVersion = params?.protocolVersion || '2024-11-05';
+    console.error(`Initializing with protocol version: ${protocolVersion}`);
+    
+    // 初期化応答を送信
+    this.sendResult(id, {
+      capabilities: {}
+    });
   }
   
   sendResult(id, result) {
