@@ -6,7 +6,8 @@
     "jsr:@std/toml@^1.0.2": "1.0.2",
     "npm:@modelcontextprotocol/sdk@*": "1.7.0_express@5.0.1_zod@3.24.2",
     "npm:marked@*": "15.0.7",
-    "npm:marked@^15.0.7": "15.0.7"
+    "npm:marked@^15.0.7": "15.0.7",
+    "npm:turndown@^7.2.0": "7.2.0"
   },
   "jsr": {
     "@std/collections@1.0.10": {
@@ -23,6 +24,9 @@
     }
   },
   "npm": {
+    "@mixmark-io/domino@2.2.0": {
+      "integrity": "sha512-Y28PR25bHXUg88kCV7nivXrP2Nj2RueZ3/l/jdx6J9f8J4nsEGcgX0Qe6lt7Pa+J79+kPiJU3LguR6O/6zrLOw=="
+    },
     "@modelcontextprotocol/sdk@1.7.0_express@5.0.1_zod@3.24.2": {
       "integrity": "sha512-IYPe/FLpvF3IZrd/f5p5ffmWhMc3aEMuM2wGJASDqC2Ge7qatVCdbfPx3n/5xFeb19xN0j/911M2AaFuircsWA==",
       "dependencies": [
@@ -472,6 +476,12 @@
     "toidentifier@1.0.1": {
       "integrity": "sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA=="
     },
+    "turndown@7.2.0": {
+      "integrity": "sha512-eCZGBN4nNNqM9Owkv9HAtWRYfLA4h909E/WGAWWBpmB275ehNhZyk87/Tpvjbp0jjNl9XwCsbe6bm6CqFsgD+A==",
+      "dependencies": [
+        "@mixmark-io/domino"
+      ]
+    },
     "type-is@2.0.0": {
       "integrity": "sha512-gd0sGezQYCbWSbkZr75mln4YBidWUN60+devscpLF5mtRDUpiaTvKpBNrdaCvel1NdR2k6vclXybU5fBd2i+nw==",
       "dependencies": [
@@ -590,7 +600,8 @@
     "dependencies": [
       "jsr:@std/path@^1.0.8",
       "jsr:@std/toml@^1.0.2",
-      "npm:marked@^15.0.7"
+      "npm:marked@^15.0.7",
+      "npm:turndown@^7.2.0"
     ]
   }
 }

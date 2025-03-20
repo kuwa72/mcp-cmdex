@@ -5,6 +5,7 @@
   "imports": {
     "@std/path": "jsr:@std/path@^1.0.8",
     "@std/toml": "jsr:@std/toml@^1.0.2",
-    "marked": "npm:marked@^15.0.7"
+    "marked": "npm:marked@^15.0.7",
+    "turndown": "npm:turndown@^7.2.0"
   }
 }

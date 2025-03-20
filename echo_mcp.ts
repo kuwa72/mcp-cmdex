@@ -9,7 +9,7 @@ import {
 	McpError,
 } from "npm:@modelcontextprotocol/sdk/types.js";
 import * as path from "@std/path"
-import { marked } from "npm:marked";
+import TurndownService from "npm:turndown";
 import * as toml from "@std/toml";
 
 type Config = {
@@ -223,7 +223,7 @@ class EchoServer {
 							}
 							const html = await response.text();
 							// HTMLをMarkdownに変換
-							const markdown = marked.parse(html);
+							const markdown = new TurndownService().turndown(html);
 							return {
 								content: [
 									{
