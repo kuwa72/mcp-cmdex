@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "build": "deno compile --allow-env --allow-net --allow-read --allow-write --allow-run echo_mcp.ts"
+  },
+  "imports": {
+    "@std/path": "jsr:@std/path@^1.0.8",
+    "@std/toml": "jsr:@std/toml@^1.0.2",
+    "marked": "npm:marked@^15.0.7"
+  }
+}
