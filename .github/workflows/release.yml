@@ -27,6 +27,9 @@ jobs:
         with:
           deno-version: v1.x
 
+      - name: Update dependencies
+        run: deno cache --reload --lock-write echo_mcp.ts
+
       - name: Build binary
         run: deno task ${{ matrix.build-task }}
 
