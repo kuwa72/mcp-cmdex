@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+        include:
+          - os: macos-latest
+            output: echo_mcp
+          - os: windows-latest
+            output: echo_mcp.exe
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Build binary
+        run: deno compile --allow-all --output ${{ matrix.output }} echo_mcp.ts
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.output }}
+          path: ${{ matrix.output }}
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            echo_mcp/*
+            echo_mcp.exe/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
