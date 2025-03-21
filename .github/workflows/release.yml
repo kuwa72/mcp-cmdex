@@ -11,11 +11,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
         include:
           - os: macos-latest
+            build-task: build:mac
             output: echo_mcp
           - os: windows-latest
+            build-task: build:win
             output: echo_mcp.exe
 
     steps:
@@ -27,7 +28,7 @@ jobs:
           deno-version: v1.x
 
       - name: Build binary
-        run: deno compile --allow-all --output ${{ matrix.output }} echo_mcp.ts
+        run: deno task ${{ matrix.build-task }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

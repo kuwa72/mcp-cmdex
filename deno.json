@@ -1,6 +1,8 @@
 {
   "tasks": {
-    "build": "deno compile --allow-env --allow-net --allow-read --allow-write --allow-run echo_mcp.ts"
+    "build": "deno compile --allow-env --allow-net --allow-read --allow-write --allow-run echo_mcp.ts",
+    "build:mac": "deno compile --allow-env --allow-net --allow-read --allow-write --allow-run --target x86_64-apple-darwin --output echo_mcp echo_mcp.ts",
+    "build:win": "deno compile --allow-env --allow-net --allow-read --allow-write --allow-run --target x86_64-pc-windows-msvc --output echo_mcp.exe echo_mcp.ts"
   },
   "imports": {
     "@std/path": "jsr:@std/path@^1.0.8",
