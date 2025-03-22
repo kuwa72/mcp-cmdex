@@ -129,3 +129,4 @@ dist
 # macOS specific
 .DS_Store
 echo_mcp
+echo_mcp.exe
