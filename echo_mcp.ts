@@ -16,14 +16,17 @@ type Config = {
 	allowedDirectories: string[];
 };
 
-const configDir = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "~";
+let configDir = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "~";
+// backslash to forward slash for windows
+configDir = configDir.replace(/\\/g, "/");
 const configFile = path.join(configDir, ".mcp-cmdex.toml");
 
 
 async function readConfig(): Promise<Config> {
+	console.error("許可されたディレクトリ(loading):", configFile);
 	const content = await Deno.readTextFile(configFile);
 	const config = toml.parse(content) as Config;
-	console.log("許可されたディレクトリ(loaded):", config.allowedDirectories);
+	console.error("許可されたディレクトリ(loaded):", config.allowedDirectories);
 	return config;
 }
 
@@ -34,7 +37,7 @@ async function validatePath(requestedPath: string): Promise<string> {
 		config = await readConfig();
 	} catch (error) {
 		console.error("許可されたディレクトリの読み取りに失敗しました:", error);
-		throw new Error("許可されたディレクトリの読み取りに失敗しました");
+		throw new Error("許可されたディレクトリの読み取りに失敗しました" + error);
 	}
 	const absolute = path.isAbsolute(requestedPath)
 		? requestedPath
