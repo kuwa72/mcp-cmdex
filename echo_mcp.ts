@@ -209,6 +209,14 @@ class EchoServer {
 						required: ["command"],
 					},
 				},
+				{
+					name: "list_allowed_commands",
+					description: "実行可能なコマンドの一覧を返します",
+					inputSchema: {
+						type: "object",
+						properties: {}, // no arguments
+					},
+				},
 			],
 		}));
 
@@ -425,6 +433,44 @@ class EchoServer {
 								`コマンド実行エラー: ${error instanceof Error ? error.message : String(error)}`
 							);
 						}
+					}
+
+					case "list_allowed_commands": {
+						// カテゴリごとにコマンドを整理
+						const commandsByCategory = new Map<string, string[]>();
+						let currentCategory = "";
+						
+						// ALLOWED_COMMANDSの定義順を保持するため、配列に変換
+						const commandsArray = Array.from(ALLOWED_COMMANDS);
+						
+						// コマンドをカテゴリごとに分類
+						commandsArray.forEach(cmd => {
+							if (cmd.startsWith("//")) {
+								// カテゴリコメントを検出
+								currentCategory = cmd.substring(2).trim();
+								commandsByCategory.set(currentCategory, []);
+							} else {
+								const category = commandsByCategory.get(currentCategory) || [];
+								category.push(cmd);
+								commandsByCategory.set(currentCategory, category);
+							}
+						});
+
+						// 整形された出力を生成
+						const output = Array.from(commandsByCategory.entries())
+							.map(([category, commands]) => {
+								return `${category}:\n  ${commands.join(", ")}`;
+							})
+							.join("\n\n");
+
+						return {
+							content: [
+								{
+									type: "text",
+									text: output,
+								},
+							],
+						};
 					}
 
 					default:
