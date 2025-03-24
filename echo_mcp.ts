@@ -195,10 +195,80 @@ class EchoServer {
 						properties: {}, // no arguments
 					},
 				},
+				{
+					name: "execute_command",
+					description: "許可されたシェルコマンドを実行します",
+					inputSchema: {
+						type: "object",
+						properties: {
+							command: {
+								type: "string",
+								description: "実行するコマンド（引数を含む）",
+							},
+						},
+						required: ["command"],
+					},
+				},
 			],
 		}));
 
 		// ツールの実装
+		const ALLOWED_COMMANDS = new Set([
+			// Windows/DOSコマンド
+			'dir', 'copy', 'xcopy', 'robocopy', 'move', 'del', 'rd', 'md', 'type', 'more',
+			'find', 'findstr', 'sort', 'fc', 'comp', 'tree', 'where', 'whoami', 'tasklist',
+			'taskkill', 'systeminfo', 'hostname', 'ipconfig', 'netstat', 'net', 'ping',
+			'tracert', 'nslookup', 'pathping', 'route', 'arp', 'attrib', 'chcp', 'cipher',
+			'clip', 'compact', 'expand', 'forfiles', 'fsutil', 'ftype', 'reg', 'sc',
+			'schtasks', 'shutdown', 'timeout', 'title', 'ver', 'vol', 'wmic', 'powershell',
+			'pwsh', 'cmd', // シェル関連
+			// shell
+			'bash', 'sh', 'zsh', 'fish', 'ksh', 'csh', 'tcsh', 'dash', 'ash',
+			// GNU Core Utils & BusyBox基本コマンド
+			'ls', 'cp', 'mv', 'rm', 'mkdir', 'rmdir', 'cat', 'head', 'tail', 'grep', 'find',
+			'sort', 'uniq', 'wc', 'tr', 'cut', 'paste', 'join', 'split', 'basename',
+			'dirname', 'pwd', 'date', 'touch', 'chmod', 'chown', 'df', 'du', 'ln', 'tar',
+			'gzip', 'gunzip', 'bzip2', 'bunzip2', 'xz', 'unxz', 'zip', 'unzip',
+			// テキスト処理ツール
+			'awk', 'gawk', 'mawk', 'nawk',
+			'sed', 'gsed', 'ssed', // sedとその実装
+			'jq', 'yq', 'fx', // JSONプロセッサ
+			'csvkit', 'xsv', 'tsv-utils', // CSV/TSV処理
+			'pandoc', 'asciidoctor', // ドキュメント変換
+			// データベースクライアント
+			'sqlite3', 'sqlite', // SQLite
+			'mysql', 'mysqldump', 'mysqlimport', // MySQL
+			'psql', 'pg_dump', 'pg_restore', // PostgreSQL
+			'mongosh', 'mongoexport', 'mongoimport', // MongoDB
+			'redis-cli', // Redis
+			'duckdb', // DuckDB
+			'influx', // InfluxDB
+			// 開発ツール - コンパイラ/インタプリタ
+			'gcc', 'g++', 'clang', 'clang++', 'rustc', 'python', 'python3', 'node', 'deno',
+			'java', 'javac', 'kotlin', 'kotlinc', 'go', 'gofmt', 'ruby', 'perl', 'php',
+			'ghc', 'stack', 'cabal', // Haskell
+			'scala', 'scalac', // Scala
+			'dotnet', // .NET
+			'tsc', 'esbuild', 'swc', // TypeScript/JavaScript
+			// パッケージマネージャ
+			'npm', 'yarn', 'pnpm', 'pip', 'pip3', 'cargo', 'gem', 'composer', 'maven',
+			'gradle', 'sbt', 'nuget', 'vcpkg', 'conan', // 追加のパッケージマネージャ
+			// ビルド/タスクツール
+			'make', 'cmake', 'ninja', 'rake', 'grunt', 'gulp', 'webpack', 'rollup', 'vite',
+			'bazel', 'buck', // ビルドシステム
+			// テストツール
+			'jest', 'pytest', 'rspec', 'mocha', 'karma', 'cypress', 'playwright',
+			// 開発支援ツール
+			'git', 'gh', // バージョン管理
+			'curl', 'wget', 'httpie', // HTTP クライアント
+			'docker', 'podman', // コンテナ
+			'terraform', 'ansible', // インフラ
+			'protoc', 'grpcurl', // プロトコル
+			'shellcheck', 'shfmt', // シェルスクリプト
+			'prettier', 'eslint', 'stylelint', // フォーマッタ/リンタ
+			'graphql', 'hasura', // GraphQL
+		]);
+
 		this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
 			try {
 				switch (request.params.name) {
@@ -318,6 +388,43 @@ class EchoServer {
 								},
 							],
 						};
+					}
+
+					case "execute_command": {
+						const { command } = request.params.arguments as { command: string };
+						const commandName = command.split(" ")[0];
+
+						if (!ALLOWED_COMMANDS.has(commandName)) {
+							throw new McpError(
+								ErrorCode.InvalidRequest,
+								`コマンド '${commandName}' は許可されていません`
+							);
+						}
+
+						try {
+							const process = new Deno.Command(commandName, {
+								args: command.split(" ").slice(1),
+								stdout: "piped",
+								stderr: "piped",
+							});
+							const { stdout, stderr } = await process.output();
+							const output = new TextDecoder().decode(stdout);
+							const error = new TextDecoder().decode(stderr);
+
+							return {
+								content: [
+									{
+										type: "text",
+										text: `実行結果:\n${output}\nエラー:\n${error}`,
+									},
+								],
+							};
+						} catch (error) {
+							throw new McpError(
+								ErrorCode.InternalError,
+								`コマンド実行エラー: ${error instanceof Error ? error.message : String(error)}`
+							);
+						}
 					}
 
 					default:
