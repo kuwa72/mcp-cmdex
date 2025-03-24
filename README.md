@@ -1,16 +1,20 @@
 # MCP-CMDEX
 
-よく配布されているMCPサーバーの例を参考にDenoで実装したMCPサーバーです。
+Model Context Protocol (MCP)のコマンド実行サーバーの実装です。Denoで実装されており、ファイルシステム操作やコマンド実行などの機能を提供します。
 
 ## 機能
 
-* filesystem
-* fetch
-* hello
+* ファイルシステム操作
+  * ファイルの読み書き
+  * ディレクトリ一覧表示
+* URLからのコンテンツ取得
+* コマンド実行
+* エコー機能
+* 設定ファイル管理
 
 ## インストール
 
-配布されている`echo_mcp`を実行ファイルとして使用してください。
+配布されている`mcp-cmdex`バイナリを実行ファイルとして使用してください。
 
 自力でコンパイルする場合は以下のコマンドを実行してください。
 
@@ -24,7 +28,7 @@ deno task build
 
 ```
 		"misc": {
-			"command": "/Users/ykuwashima/ghq/github.com/kuwa72/mcp-cmdex/echo_mcp",
+			"command": "/path/to/mcp-cmdex",
 			"disabled": false,
 			"alwaysAllow": []
 		}
@@ -37,7 +41,13 @@ Mac, Windowsで設定ファイルは以下の場所にあります。
 * Windows: `%USERPROFILE%/.mcp-cmdex.toml`
 
 ```toml
+# ディレクトリアクセス許可
 allowedDirectories = ["/path/to/directory", "/path/to/another/directory"]
+
+# コマンド実行許可（オプション）
+[allowedCommands]
+system = ["ls", "cat", "echo"]
+network = ["curl", "wget"]
 ```
 
 ### 試すには
@@ -46,8 +56,14 @@ allowedDirectories = ["/path/to/directory", "/path/to/another/directory"]
 # ツール一覧を取得
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | mcp-cmdex
 
-# ツールを実行
-echo '{"jsonrpc":"2.0","id":2,"method":"tool/exec","params":{"name":"mcp-cmdex/hello","arguments":{}}}' | mcp-cmdex
+# エコー機能を実行
+echo '{"jsonrpc":"2.0","id":2,"method":"tool/exec","params":{"name":"echo","arguments":{"text":"Hello, World!"}}}' | mcp-cmdex
+
+# ファイル読み取り
+echo '{"jsonrpc":"2.0","id":3,"method":"tool/exec","params":{"name":"read_file","arguments":{"path":"/path/to/file"}}}' | mcp-cmdex
+
+# コマンド実行
+echo '{"jsonrpc":"2.0","id":4,"method":"tool/exec","params":{"name":"execute_command","arguments":{"command":"ls -l"}}}' | mcp-cmdex
 ```
 
 ## ライセンス

@@ -98,13 +98,13 @@ async function validatePath(requestedPath: string): Promise<string> {
 	}
 }
 
-class EchoServer {
+class MCPCommandServer {
 	private server: Server;
 
 	constructor() {
 		this.server = new Server(
 			{
-				name: "echo-server",
+				name: "mcp-cmdex",
 				version: "0.2.0",
 			},
 			{
@@ -532,5 +532,5 @@ class EchoServer {
 }
 
 // サーバーの起動
-const server = new EchoServer();
+const server = new MCPCommandServer();
 server.run().catch(console.error);
