@@ -14,6 +14,9 @@ import * as toml from "@std/toml";
 
 type Config = {
 	allowedDirectories: string[];
+	allowedCommands?: {
+		[category: string]: string[];
+	};
 };
 
 let configDir = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "~";
@@ -21,13 +24,20 @@ let configDir = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "~";
 configDir = configDir.replace(/\\/g, "/");
 const configFile = path.join(configDir, ".mcp-cmdex.toml");
 
-
 async function readConfig(): Promise<Config> {
-	console.error("許可されたディレクトリ(loading):", configFile);
-	const content = await Deno.readTextFile(configFile);
-	const config = toml.parse(content) as Config;
-	console.error("許可されたディレクトリ(loaded):", config.allowedDirectories);
-	return config;
+	console.error("設定ファイル(loading):", configFile);
+	try {
+		const content = await Deno.readTextFile(configFile);
+		const config = toml.parse(content) as Config;
+		console.error("許可されたディレクトリ(loaded):", config.allowedDirectories);
+		return config;
+	} catch (error) {
+		if (error instanceof Deno.errors.NotFound) {
+			// 設定ファイルが存在しない場合はデフォルト設定を返す
+			return { allowedDirectories: [] };
+		}
+		throw error;
+	}
 }
 
 // パスの正規化と検証用のユーティリティ関数
@@ -402,7 +412,19 @@ class EchoServer {
 						const { command } = request.params.arguments as { command: string };
 						const commandName = command.split(" ")[0];
 
-						if (!ALLOWED_COMMANDS.has(commandName)) {
+						// 設定ファイルからの追加コマンドをチェック
+						let isAllowed = ALLOWED_COMMANDS.has(commandName);
+						if (!isAllowed) {
+							try {
+								const config = await readConfig();
+								isAllowed = Object.values(config.allowedCommands || {})
+									.some(commands => commands.includes(commandName));
+							} catch (error) {
+								console.error("追加コマンドの確認に失敗:", error);
+							}
+						}
+
+						if (!isAllowed) {
 							throw new McpError(
 								ErrorCode.InvalidRequest,
 								`コマンド '${commandName}' は許可されていません`
@@ -440,13 +462,10 @@ class EchoServer {
 						const commandsByCategory = new Map<string, string[]>();
 						let currentCategory = "";
 						
-						// ALLOWED_COMMANDSの定義順を保持するため、配列に変換
+						// デフォルトのコマンドを追加
 						const commandsArray = Array.from(ALLOWED_COMMANDS);
-						
-						// コマンドをカテゴリごとに分類
 						commandsArray.forEach(cmd => {
 							if (cmd.startsWith("//")) {
-								// カテゴリコメントを検出
 								currentCategory = cmd.substring(2).trim();
 								commandsByCategory.set(currentCategory, []);
 							} else {
@@ -456,10 +475,24 @@ class EchoServer {
 							}
 						});
 
+						// 設定ファイルからの追加コマンドを読み込む
+						try {
+							const config = await readConfig();
+							if (config.allowedCommands) {
+								Object.entries(config.allowedCommands).forEach(([category, commands]) => {
+									const existingCommands = commandsByCategory.get(category) || [];
+									commandsByCategory.set(category, [...new Set([...existingCommands, ...commands])]);
+								});
+							}
+						} catch (error) {
+							console.error("追加コマンドの読み込みに失敗:", error);
+						}
+
 						// 整形された出力を生成
 						const output = Array.from(commandsByCategory.entries())
 							.map(([category, commands]) => {
-								return `${category}:\n  ${commands.join(", ")}`;
+								const sortedCommands = Array.from(new Set(commands)).sort();
+								return `${category}:\n  ${sortedCommands.join(", ")}`;
 							})
 							.join("\n\n");
 
