@@ -14,10 +14,10 @@ jobs:
         include:
           - os: macos-latest
             build-task: build:mac
-            output: echo_mcp
+            output: mcp-cmdex
           - os: windows-latest
             build-task: build:win
-            output: echo_mcp.exe
+            output: mcp-cmdex.exe
 
     steps:
       - uses: actions/checkout@v4
