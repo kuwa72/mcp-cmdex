@@ -130,3 +130,4 @@ dist
 .DS_Store
 echo_mcp
 *.exe
+mcp-cmdex
