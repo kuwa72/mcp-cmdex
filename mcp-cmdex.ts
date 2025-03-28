@@ -77,7 +77,7 @@ async function validatePath(requestedPath: string): Promise<string> {
 			);
 		}
 		return realPath;
-	} catch (error) {
+	} catch (_error) {
 		// 新規ファイル作成の場合は親ディレクトリをチェック
 		const parentDir = path.dirname(absolute);
 		try {
@@ -242,12 +242,20 @@ class MCPCommandServer {
 					inputSchema: {
 						type: "object",
 						properties: {
-							command: {
+							commandName: {
 								type: "string",
-								description: "実行するコマンド（引数を含む）",
+								description: "実行するコマンド名",
 							},
+							args: {
+								type: "array",
+								items: {
+									type: "string"
+								},
+								description: "コマンドの引数",
+								default: []
+							}
 						},
-						required: ["command"],
+						required: ["commandName"],
 					},
 				},
 				{
@@ -479,8 +487,10 @@ class MCPCommandServer {
 					}
 
 					case "execute_command": {
-						const { command } = request.params.arguments as { command: string };
-						const commandName = command.split(" ")[0];
+						const { commandName, args = [] } = request.params.arguments as { 
+							commandName: string;
+							args?: string[];
+						};
 
 						// 設定ファイルからの追加コマンドをチェック
 						let isAllowed = ALLOWED_COMMANDS.has(commandName);
@@ -502,11 +512,16 @@ class MCPCommandServer {
 						}
 
 						try {
-							const process = new Deno.Command(commandName, {
-								args: command.split(" ").slice(1),
-								stdout: "piped",
-								stderr: "piped",
-							});
+							// Windowsの場合のみcmd.exe経由で実行
+							const isWindows = Deno.build.os === "windows";
+							const process = new Deno.Command(
+								isWindows ? "cmd.exe" : commandName,
+								{
+									args: isWindows ? ["/c", commandName, ...args] : args,
+									stdout: "piped",
+									stderr: "piped",
+								}
+							);
 							const { stdout, stderr } = await process.output();
 							const output = new TextDecoder().decode(stdout);
 							const error = new TextDecoder().decode(stderr);
