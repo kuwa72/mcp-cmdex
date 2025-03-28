@@ -1,5 +1,5 @@
-import { ChatOllama } from "npm:@langchain/ollama";
-import { ChatPromptTemplate } from "npm:@langchain/core/prompts";
+import { ChatOllama } from "@langchain/ollama";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
 import type { LLMProcessor, LLMConfig, ProcessResult } from "./types.ts";
 
 export class OllamaProcessor implements LLMProcessor {
@@ -51,13 +51,8 @@ Text to translate:
   async process(text: string, config: LLMConfig): Promise<ProcessResult> {
     let processed = text;
 
-    if (config.maxLength) {
-      processed = await this.summarize(processed, config.maxLength);
-    }
-
-    if (config.translateToEnglish) {
+      processed = await this.summarize(processed);
       processed = await this.translateToEnglish(processed);
-    }
 
     return {
       original: text,

@@ -7,5 +7,5 @@ export function createLLMProcessor(config: LLMConfig): LLMProcessor {
     return new NullLLMProcessor();
   }
 
-  return new OllamaProcessor(config.endpoint, config.model);
+  return new OllamaProcessor();
 }

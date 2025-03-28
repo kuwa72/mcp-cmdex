@@ -8,6 +8,8 @@ Model Context Protocol (MCP)のコマンド実行サーバーの実装です。D
   * ファイルの読み書き
   * ディレクトリ一覧表示
 * URLからのコンテンツ取得
+  * HTMLをMarkdownに変換
+  * LLMによる要約と翻訳（オプション）
 * コマンド実行
 * エコー機能
 * 設定ファイル管理
@@ -48,6 +50,10 @@ allowedDirectories = ["/path/to/directory", "/path/to/another/directory"]
 [allowedCommands]
 system = ["ls", "cat", "echo"]
 network = ["curl", "wget"]
+
+# LLM機能の設定（オプション）
+[llm]
+enabled = false  # trueにするとLLM機能が有効になります
 ```
 
 ### 試すには

@@ -1,9 +1,5 @@
 export interface LLMConfig {
   enabled: boolean;
-  model?: string;
-  endpoint?: string;
-  maxLength?: number;
-  translateToEnglish?: boolean;
 }
 
 export interface ProcessResult {

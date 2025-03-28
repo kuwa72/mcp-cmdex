@@ -11,11 +11,15 @@ import {
 import * as path from "@std/path"
 import TurndownService from "npm:turndown";
 import * as toml from "@std/toml";
+import { createLLMProcessor } from "./llm/processor-factory.ts";
 
 type Config = {
 	allowedDirectories: string[];
 	allowedCommands?: {
 		[category: string]: string[];
+	};
+	llm?: {
+		enabled: boolean;
 	};
 };
 
@@ -47,7 +51,7 @@ async function validatePath(requestedPath: string): Promise<string> {
 		config = await readConfig();
 	} catch (error) {
 		console.error("許可されたディレクトリの読み取りに失敗しました:", error);
-		throw new Error("許可されたディレクトリの読み取りに失敗しました" + error);
+		throw new Error(`許可されたディレクトリの読み取りに失敗しました: ${error}`);
 	}
 	const absolute = path.isAbsolute(requestedPath)
 		? requestedPath
@@ -366,6 +370,26 @@ class MCPCommandServer {
 							const html = await response.text();
 							// HTMLをMarkdownに変換
 							const markdown = new TurndownService().turndown(html);
+
+							// LLM処理の設定を読み込む
+							const config = await readConfig();
+							if (config.llm?.enabled) {
+								const processor = createLLMProcessor({
+									enabled: true,
+								});
+
+								const result = await processor.process(markdown, config.llm);
+								return {
+									content: [
+										{
+											type: "text",
+											text: result.processed,
+										},
+									],
+								};
+							}
+
+							// LLMが無効な場合は元のMarkdownを返す
 							return {
 								content: [
 									{
@@ -549,7 +573,7 @@ class MCPCommandServer {
 						
 						// デフォルトのコマンドを追加
 						const commandsArray = Array.from(ALLOWED_COMMANDS);
-						commandsArray.forEach(cmd => {
+						for (const cmd of commandsArray) {
 							if (cmd.startsWith("//")) {
 								currentCategory = cmd.substring(2).trim();
 								commandsByCategory.set(currentCategory, []);
@@ -558,16 +582,16 @@ class MCPCommandServer {
 								category.push(cmd);
 								commandsByCategory.set(currentCategory, category);
 							}
-						});
+						}
 
 						// 設定ファイルからの追加コマンドを読み込む
 						try {
 							const config = await readConfig();
 							if (config.allowedCommands) {
-								Object.entries(config.allowedCommands).forEach(([category, commands]) => {
+								for (const [category, commands] of Object.entries(config.allowedCommands)) {
 									const existingCommands = commandsByCategory.get(category) || [];
 									commandsByCategory.set(category, [...new Set([...existingCommands, ...commands])]);
-								});
+								}
 							}
 						} catch (error) {
 							console.error("追加コマンドの読み込みに失敗:", error);
