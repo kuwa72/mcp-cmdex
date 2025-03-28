@@ -124,6 +124,15 @@ class MCPCommandServer {
 		this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
 			tools: [
 				{
+					name: "get_path",
+					description: "システムのPATH環境変数を表示します",
+					inputSchema: {
+						type: "object",
+						properties: {},
+						required: [],
+					},
+				},
+				{
 					name: "echo",
 					description: "入力された文字列をそのまま返します",
 					inputSchema: {
@@ -161,6 +170,10 @@ class MCPCommandServer {
 								type: "string",
 								description: "読み取るファイルのパス",
 							},
+							range: {
+								type: "string",
+								description: "読み取るファイルの範囲(n:m/:m/n:)",
+							},
 						},
 						required: ["path"],
 					},
@@ -178,6 +191,24 @@ class MCPCommandServer {
 							content: {
 								type: "string",
 								description: "書き込む内容",
+							},
+						},
+						required: ["path", "content"],
+					},
+				},
+				{
+					name: "append_file",
+					description: "ファイルに内容を追加します",
+					inputSchema: {
+						type: "object",
+						properties: {
+							path: {
+								type: "string",
+								description: "追加先のファイルパス",
+							},
+							content: {
+								type: "string",
+								description: "追加する内容",
 							},
 						},
 						required: ["path", "content"],
@@ -290,6 +321,18 @@ class MCPCommandServer {
 		this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
 			try {
 				switch (request.params.name) {
+					case "get_path": {
+						const path = Deno.env.get("PATH");
+						return {
+							content: [
+								{
+									type: "text",
+									text: path || "PATH環境変数が設定されていません",
+								},
+							],
+						};
+					}
+
 					case "echo": {
 						const { text } = request.params.arguments as { text: string };
 						return {
@@ -335,17 +378,27 @@ class MCPCommandServer {
 					}
 
 					case "read_file": {
-						const { path: filePath } = request.params.arguments as {
+						const { path: filePath, range: rangeStr } = request.params.arguments as {
 							path: string;
+							range: string;
 						};
 						const validPath = await validatePath(filePath);
 						const content = await Deno.readTextFile(validPath);
-						// contextがJSONだとレスポンスが壊れるので
+						const lines = content.split("\n");
+						const range = rangeStr || "0:0";
+						const [start, end] = range.split(":").map(Number);
+						let selectedLines = "";
+						if (!end) {
+							selectedLines = lines.slice(start).join("\n");
+						} else {
+							selectedLines = lines.slice(start, end + 1).join("\n");
+						}
+
 						return {
 							content: [
 								{
 									type: "text",
-									text: content,
+									text: selectedLines,
 								},
 							],
 						};
@@ -363,6 +416,23 @@ class MCPCommandServer {
 								{
 									type: "text",
 									text: `ファイルの書き込みに成功しました: ${filePath}`,
+								},
+							],
+						};
+					}
+
+					case "append_file": {
+						const { path: filePath, content } = request.params.arguments as {
+							path: string;
+							content: string;
+						};
+						const validPath = await validatePath(filePath);
+						await Deno.writeTextFile(validPath, content, { append: true });
+						return {
+							content: [
+								{
+									type: "text",
+									text: `ファイルの追加に成功しました: ${filePath}`,
 								},
 							],
 						};
