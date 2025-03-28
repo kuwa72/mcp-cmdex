@@ -52,6 +52,9 @@ system = ["ls", "cat", "echo"]
 network = ["curl", "wget"]
 
 # LLM機能の設定（オプション）
+# 注: LLM機能を使用するには以下が必要です：
+# - Ollamaがローカルにインストールされていること（http://localhost:11434で実行中）
+# - deepseek-r1:8Bモデルがダウンロードされていること（ollama pull deepseek-r1:8B）
 [llm]
 enabled = false  # trueにするとLLM機能が有効になります
 ```
