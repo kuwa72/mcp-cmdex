@@ -10,7 +10,9 @@
     "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.7.0",
     "@std/path": "jsr:@std/path@^1.0.8",
     "@std/toml": "jsr:@std/toml@^1.0.2",
+    "html-to-md": "npm:html-to-md@^0.8.7",
     "marked": "npm:marked@^15.0.7",
+    "showdown": "npm:showdown@^2.1.0",
     "turndown": "npm:turndown@^7.2.0",
     "@langchain/ollama": "npm:@langchain/ollama@^0.2.0"
   }
