@@ -10,39 +10,13 @@ import {
 } from "npm:@modelcontextprotocol/sdk/types.js";
 import * as path from "@std/path"
 import TurndownService from "npm:turndown";
-import * as toml from "@std/toml";
 import { createLLMProcessor } from "./llm/processor-factory.ts";
+import { fileOperationsAPIDefinitions } from "./file-operations.ts";
+import { readConfig, getConfigFilePath } from "./config.ts";
+import type { Config } from "./config.ts";
+import { executeCommand } from "./command-executor.ts";
 
-type Config = {
-	allowedDirectories: string[];
-	allowedCommands?: {
-		[category: string]: string[];
-	};
-	llm?: {
-		enabled: boolean;
-	};
-};
-
-let configDir = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "~";
-// backslash to forward slash for windows
-configDir = configDir.replace(/\\/g, "/");
-const configFile = path.join(configDir, ".mcp-cmdex.toml");
-
-async function readConfig(): Promise<Config> {
-	console.error("設定ファイル(loading):", configFile);
-	try {
-		const content = await Deno.readTextFile(configFile);
-		const config = toml.parse(content) as Config;
-		console.error("許可されたディレクトリ(loaded):", config.allowedDirectories);
-		return config;
-	} catch (error) {
-		if (error instanceof Deno.errors.NotFound) {
-			// 設定ファイルが存在しない場合はデフォルト設定を返す
-			return { allowedDirectories: [] };
-		}
-		throw error;
-	}
-}
+// Config型とreadConfig関数はconfig.tsに移動しました
 
 // パスの正規化と検証用のユーティリティ関数
 async function validatePath(requestedPath: string): Promise<string> {
@@ -113,7 +87,9 @@ class MCPCommandServer {
 			},
 			{
 				capabilities: {
-					tools: {},
+					tools: {
+						...Object.fromEntries(fileOperationsAPIDefinitions.map((def) => [def.name, def])),
+					},
 				},
 			},
 		);
@@ -230,6 +206,62 @@ class MCPCommandServer {
 							},
 						},
 						required: ["path"],
+					},
+				},
+				{
+					name: "create_directory",
+					description: "新しいディレクトリを作成します",
+					inputSchema: {
+						type: "object",
+						properties: {
+							path: {
+								type: "string",
+								description: "作成するディレクトリのパス",
+							},
+							recursive: {
+								type: "boolean",
+								description: "親ディレクトリも必要に応じて作成するかどうか",
+								default: false
+							}
+						},
+						required: ["path"],
+					},
+				},
+				{
+					name: "remove_directory",
+					description: "ディレクトリを削除します",
+					inputSchema: {
+						type: "object",
+						properties: {
+							path: {
+								type: "string",
+								description: "削除するディレクトリのパス",
+							},
+							recursive: {
+								type: "boolean",
+								description: "ディレクトリが空でない場合も再帰的に削除するかどうか",
+								default: false
+							}
+						},
+						required: ["path"],
+					},
+				},
+				{
+					name: "rename_directory",
+					description: "ディレクトリの名前を変更または移動します",
+					inputSchema: {
+						type: "object",
+						properties: {
+							sourcePath: {
+								type: "string",
+								description: "名前変更または移動元のディレクトリパス",
+							},
+							destinationPath: {
+								type: "string",
+								description: "名前変更または移動先のディレクトリパス",
+							}
+						},
+						required: ["sourcePath", "destinationPath"],
 					},
 				},
 				{
@@ -491,13 +523,86 @@ class MCPCommandServer {
 						};
 					}
 
+					case "create_directory": {
+						const { path: dirPath, recursive = false } = request.params.arguments as {
+							path: string;
+							recursive?: boolean;
+						};
+						const validPath = await validatePath(dirPath);
+						try {
+							await Deno.mkdir(validPath, { recursive });
+							return {
+								content: [
+									{
+										type: "text",
+										text: `ディレクトリ '${dirPath}' を作成しました`,
+									},
+								],
+							};
+						} catch (error) {
+							throw new McpError(
+								ErrorCode.InternalError,
+								`ディレクトリ作成エラー: ${error instanceof Error ? error.message : String(error)}`
+							);
+						}
+					}
+
+					case "remove_directory": {
+						const { path: dirPath, recursive = false } = request.params.arguments as {
+							path: string;
+							recursive?: boolean;
+						};
+						const validPath = await validatePath(dirPath);
+						try {
+							await Deno.remove(validPath, { recursive });
+							return {
+								content: [
+									{
+										type: "text",
+										text: `ディレクトリ '${dirPath}' を削除しました`,
+									},
+								],
+							};
+						} catch (error) {
+							throw new McpError(
+								ErrorCode.InternalError,
+								`ディレクトリ削除エラー: ${error instanceof Error ? error.message : String(error)}`
+							);
+						}
+					}
+
+					case "rename_directory": {
+						const { sourcePath, destinationPath } = request.params.arguments as {
+							sourcePath: string;
+							destinationPath: string;
+						};
+						const validSourcePath = await validatePath(sourcePath);
+						const validDestPath = await validatePath(destinationPath);
+						try {
+							await Deno.rename(validSourcePath, validDestPath);
+							return {
+								content: [
+									{
+										type: "text",
+										text: `ディレクトリを '${sourcePath}' から '${destinationPath}' に移動/名前変更しました`,
+									},
+								],
+							};
+						} catch (error) {
+							throw new McpError(
+								ErrorCode.InternalError,
+								`ディレクトリ名前変更/移動エラー: ${error instanceof Error ? error.message : String(error)}`
+							);
+						}
+					}
+
 					case "open_config_file": {
 						// windows
 						if (Deno.build.os === "windows") {
-							const command = new Deno.Command("notepad", {args: [configFile]});
+							const command = new Deno.Command("notepad", {args: [getConfigFilePath()]});
 							command.spawn();
 						} else {
-							const command = new Deno.Command("open", {args: [configFile]});
+							const command = new Deno.Command("open", {args: [getConfigFilePath()]});
 							command.spawn();
 						}
 						return {
@@ -516,49 +621,26 @@ class MCPCommandServer {
 							args?: string[];
 						};
 
-						// 設定ファイルからの追加コマンドをチェック
-						let isAllowed = ALLOWED_COMMANDS.has(commandName);
-						if (!isAllowed) {
-							try {
-								const config = await readConfig();
-								isAllowed = Object.values(config.allowedCommands || {})
-									.some(commands => commands.includes(commandName));
-							} catch (error) {
-								console.error("追加コマンドの確認に失敗:", error);
-							}
-						}
-
-						if (!isAllowed) {
-							throw new McpError(
-								ErrorCode.InvalidRequest,
-								`コマンド '${commandName}' は許可されていません`
-							);
-						}
-
 						try {
-							// Windowsの場合のみcmd.exe経由で実行
-							const isWindows = Deno.build.os === "windows";
-							const process = new Deno.Command(
-								isWindows ? "cmd.exe" : commandName,
-								{
-									args: isWindows ? ["/c", commandName, ...args] : args,
-									stdout: "piped",
-									stderr: "piped",
-								}
-							);
-							const { stdout, stderr } = await process.output();
-							const output = new TextDecoder().decode(stdout);
-							const error = new TextDecoder().decode(stderr);
+							// リファクタリングされた executeCommand 関数を使用
+							const result = await executeCommand({
+								commandName,
+								args,
+								allowedCommands: ALLOWED_COMMANDS
+							});
 
 							return {
 								content: [
 									{
 										type: "text",
-										text: `実行結果:\n${output}\nエラー:\n${error}`,
+										text: `実行結果:\n${result.output}\nエラー:\n${result.error}`,
 									},
 								],
 							};
 						} catch (error) {
+							if (error instanceof McpError) {
+								throw error;
+							}
 							throw new McpError(
 								ErrorCode.InternalError,
 								`コマンド実行エラー: ${error instanceof Error ? error.message : String(error)}`
@@ -613,6 +695,113 @@ class MCPCommandServer {
 								},
 							],
 						};
+					}
+
+					case "copy_file": {
+						const { sourcePath, destinationPath } = request.params.arguments as {
+							sourcePath: string;
+							destinationPath: string;
+						};
+						const validSourcePath = await validatePath(sourcePath);
+						const validDestPath = await validatePath(destinationPath);
+						try {
+							const content = await Deno.readFile(validSourcePath);
+							await Deno.writeFile(validDestPath, content);
+							return {
+								content: [
+									{
+										type: "text",
+										text: `ファイルを '${sourcePath}' から '${destinationPath}' にコピーしました`,
+									},
+								],
+							};
+						} catch (error) {
+							throw new McpError(
+								ErrorCode.InternalError,
+								`ファイルコピーエラー: ${error instanceof Error ? error.message : String(error)}`
+							);
+						}
+					}
+
+					case "move_file": {
+						const { sourcePath, destinationPath } = request.params.arguments as {
+							sourcePath: string;
+							destinationPath: string;
+						};
+						const validSourcePath = await validatePath(sourcePath);
+						const validDestPath = await validatePath(destinationPath);
+						try {
+							await Deno.rename(validSourcePath, validDestPath);
+							return {
+								content: [
+									{
+										type: "text",
+										text: `ファイルを '${sourcePath}' から '${destinationPath}' に移動/名前変更しました`,
+									},
+								],
+							};
+						} catch (error) {
+							throw new McpError(
+								ErrorCode.InternalError,
+								`ファイル移動/名前変更エラー: ${error instanceof Error ? error.message : String(error)}`
+							);
+						}
+					}
+
+					case "delete_file": {
+						const { path: filePath } = request.params.arguments as {
+							path: string;
+						};
+						const validPath = await validatePath(filePath);
+						try {
+							await Deno.remove(validPath);
+							return {
+								content: [
+									{
+										type: "text",
+										text: `ファイル '${filePath}' を削除しました`,
+									},
+								],
+							};
+						} catch (error) {
+							throw new McpError(
+								ErrorCode.InternalError,
+								`ファイル削除エラー: ${error instanceof Error ? error.message : String(error)}`
+							);
+						}
+					}
+
+					case "file_exists": {
+						const { path: filePath } = request.params.arguments as {
+							path: string;
+						};
+						const validPath = await validatePath(filePath);
+						try {
+							const stat = await Deno.stat(validPath);
+							return {
+								content: [
+									{
+										type: "text",
+										text: `ファイル '${filePath}' は${stat.isFile ? "存在します" : "ファイルではありません"}`,
+									},
+								],
+							};
+						} catch (error) {
+							if (error instanceof Deno.errors.NotFound) {
+								return {
+									content: [
+										{
+											type: "text",
+											text: `ファイル '${filePath}' は存在しません`,
+										},
+									],
+								};
+							}
+							throw new McpError(
+								ErrorCode.InternalError,
+								`ファイル存在チェックエラー: ${error instanceof Error ? error.message : String(error)}`
+							);
+						}
 					}
 
 					default:
