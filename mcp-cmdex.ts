@@ -401,14 +401,39 @@ class MCPCommandServer {
 							}
 							const html = await response.text();
 							// HTMLをMarkdownに変換
-							const markdown = new TurndownService().turndown(html);
+							const tds = new TurndownService({
+								keepReplacement: (content: string, node: TurndownService.Node) => node.nodeName === 'IMG' ? content : '', // 画像以外の属性を除去
+								blankReplacement: (content: string, node: TurndownService.Node) => {
+								  return node.isBlock ? '\n\n' : ''
+								}
+							  });
+							  tds.addRule('removeStyles', {
+								filter: ['style', 'link'],
+								replacement: () => ''
+							  });
+							  
+							  tds.addRule('cleanAttributes', {
+								filter: ['span', 'div'],
+								replacement: (content: string) => content
+							  });
+							  tds.addRule('removeInlineStyles', {
+								filter: (node: TurndownService.Node) => {
+								  return node.nodeType === 1 && node.hasAttribute('style');
+								},
+								replacement: (content: string, node: TurndownService.Node) => {
+								  node.removeAttribute('style');
+								  return content;
+								}
+							  });
+							  
+							const markdown = tds.turndown(html);
+							
 
+;
 							// LLM処理の設定を読み込む
 							const config = await readConfig();
 							if (config.llm?.enabled) {
-								const processor = createLLMProcessor({
-									enabled: true,
-								});
+								const processor = createLLMProcessor(config.llm);
 
 								const result = await processor.process(markdown, config.llm);
 								return {

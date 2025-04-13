@@ -8,8 +8,10 @@
     "npm:@langchain/ollama@0.2": "0.2.0_@langchain+core@0.3.43__zod@3.24.2_zod@3.24.2",
     "npm:@modelcontextprotocol/sdk@*": "1.7.0_express@5.0.1_zod@3.24.2",
     "npm:@modelcontextprotocol/sdk@^1.7.0": "1.7.0_express@5.0.1_zod@3.24.2",
+    "npm:html-to-md@~0.8.7": "0.8.7",
     "npm:marked@*": "15.0.7",
     "npm:marked@^15.0.7": "15.0.7",
+    "npm:showdown@^2.1.0": "2.1.0",
     "npm:turndown@*": "7.2.0",
     "npm:turndown@^7.2.0": "7.2.0"
   },
@@ -149,6 +151,9 @@
     },
     "color-name@1.1.4": {
       "integrity": "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA=="
+    },
+    "commander@9.5.0": {
+      "integrity": "sha512-KRs7WVDKg86PWiuAqhDrAQnTXZKraVcCc6vFdL14qrZ/DcWwuRo7VoiYXalXO7S5GKpqYiVEwCbgFDfxNHKJBQ=="
     },
     "console-table-printer@2.12.1": {
       "integrity": "sha512-wKGOQRRvdnd89pCeH96e2Fn4wkbenSP6LMHfjfyNLMbGuHEFbMqQNuxXqd0oXG9caIOQ1FTvc5Uijp9/4jujnQ==",
@@ -345,6 +350,9 @@
       "dependencies": [
         "function-bind"
       ]
+    },
+    "html-to-md@0.8.7": {
+      "integrity": "sha512-4QPEv2rFNVjS3KkHBxW5p1+a/WPJBAUVMGEmNFnhnUJJ6gEbhtifJki/7WgKQw5qPp3M+ZJTnq1YcR4+5i9srg=="
     },
     "http-errors@2.0.0": {
       "integrity": "sha512-FtwrG/euBzaEjYeRqOgly7G0qviiXoJWnvEH2Z1plBdXgbyjv34pHTSb9zoeHMyDy33+DWy5Wt9Wo+TURtOYSQ==",
@@ -576,6 +584,12 @@
     "setprototypeof@1.2.0": {
       "integrity": "sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw=="
     },
+    "showdown@2.1.0": {
+      "integrity": "sha512-/6NVYu4U819R2pUIk79n67SYgJHWCce0a5xTP979WbNp0FL9MN1I1QK662IDU1b6JzKTvmhgI7T7JYIxBi3kMQ==",
+      "dependencies": [
+        "commander"
+      ]
+    },
     "side-channel-list@1.0.0": {
       "integrity": "sha512-FCLHtRD/gnpCiCHEiJLOwdmFP+wzCmDEkc9y7NsYxeF4u7Btsn1ZuwgwJGxImImHicJArLP4R0yX4c2KCrMrTA==",
       "dependencies": [
@@ -791,7 +805,9 @@
       "npm:@langchain/core@~0.3.43",
       "npm:@langchain/ollama@0.2",
       "npm:@modelcontextprotocol/sdk@^1.7.0",
+      "npm:html-to-md@~0.8.7",
       "npm:marked@^15.0.7",
+      "npm:showdown@^2.1.0",
       "npm:turndown@^7.2.0"
     ]
   }
